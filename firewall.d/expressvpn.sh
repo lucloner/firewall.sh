@@ -144,7 +144,7 @@ vpnverify(){
   cat /dev/null > $var4
   cat $pinglist | while read line
   do
-    echo ----TEST PING $PING
+    echo ----TEST PING $line
     ping -c 10 $line >> $var4
   done
   var10=`cat $var4 | grep ", 0 received" | wc -l | awk '{print $1}'`
