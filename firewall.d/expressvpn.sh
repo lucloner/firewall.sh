@@ -100,6 +100,8 @@ then
   if [ -d /proc/$var10 ]
   then
     echo $NAME [$FILENAME] IS RUNNING
+    rm $tmpdir/task_*
+    rm $PIDFILE
     echo $1 >> $tasklist
     exit 2
   fi
@@ -111,9 +113,13 @@ echo nameserver 8.8.8.8 > /etc/resolv.conf
 echo nameserver 8.8.4.4 >> /etc/resolv.conf
 
 vpnstatus(){
-  expressvpn status > $var5 2>&1
-  if [ `grep -c 'Connected to ' $var5` -eq '0' ]
+  cat /dev/null > $var7
+  expressvpn status 2>&1 > $var5
+  cat $var5 | grep 'Connected to ' > $var7
+  cat $var5
+  if [ -s $var7 ]
   then
+    cat $var7
     echo "--ALREADY CONNECT"
     exit 4
   fi
@@ -121,14 +127,14 @@ vpnstatus(){
 
 vpnconnect(){
   cnt=$rnd
-  echo CONNECT EXPRESSVPN FROM LINE $cnt [PID:$$]
   while cnt=`expr $cnt % $nodecnt + 1`
   do
+    echo CONNECT EXPRESSVPN FROM LINE $cnt [PID:$$]
     sed -n "${cnt}P" $nodelist > $var0
     var10=`cat $var0`
     echo CONNECT EXPRESSVPN TO $var10
     cat /dev/null > $var1
-    expressvpn connect $var10 > $var1 2>&1
+    expressvpn connect $var10 2>&1 > $var1
     cat $var1 | grep 'Connected to ' > $var2
     if [ -s $var2 ]
     then
@@ -145,7 +151,17 @@ vpnverify(){
   cat $pinglist | while read line
   do
     echo ----TEST PING $line
-    ping -c 10 $line >> $var4
+    cat /dev/null > $var6
+    ping -c 10 $line 2>&1 > $var6
+    if [ -s $var6 ]
+    then
+      cat $var6
+    else
+      echo ", 0 received" > $var6
+    fi
+    cat $var6 >> $var4
+    echo ---- >> $var4
+    echo ----PING END
   done
   var10=`cat $var4 | grep ", 0 received" | wc -l | awk '{print $1}'`
   echo ----PING FAILED: $var10
