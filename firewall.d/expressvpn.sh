@@ -59,10 +59,12 @@ then
   echo 8.8.8.8 >> $pinglist
 fi
 
-#继续获取随机数
-nodecnt=`awk 'END{print NR}' $0`
+#继续获取随机�?
+nodecnt=`awk 'END{print NR}' $nodelist`
 rnd=`cat /dev/urandom | head -n 10 | cksum | awk -F ' ' '{print $1}'`
+echo GEN RANDOM $rnd $nodecnt
 rnd=`expr $rnd % $nodecnt + 1`
+echo ROUND RANDOW $rnd
 
 #声明临时文件
 tmpdir=`mount | grep fwfs | grep tmpfs | awk '{print $3}'`
@@ -101,7 +103,7 @@ then
   then
     echo $NAME [$FILENAME] IS RUNNING
     rm $tmpdir/task_*
-    rm $PIDFILE
+    #rm $PIDFILE
     echo $1 >> $tasklist
     exit 2
   fi
@@ -114,19 +116,58 @@ echo nameserver 8.8.4.4 >> /etc/resolv.conf
 
 vpnstatus(){
   cat /dev/null > $var7
-  expressvpn status 2>&1 > $var5
-  cat $var5 | grep 'Connected to ' > $var7
-  cat $var5
-  if [ -s $var7 ]
-  then
-    cat $var7
-    echo "--ALREADY CONNECT"
-    exit 4
-  fi
+  timeout=0
+  while timeout=`expr $timeout + 1`
+  do
+    echo ----TRY STATUS $timeout
+    expressvpn status >$var5 2>&1
+    cat $var5 | grep 'Connected to ' > $var7
+    echo EXPRESSVPN STATUS $var5
+    if [ -s $var7 ]
+    then
+      cat $var7
+      echo "--ALREADY CONNECT"
+      exit 4
+    fi
+    cat $var5 | grep 'Connecting...' > $var7
+    echo EXPRESSVPN STATUS FAILED $var7
+    if [ -s $var7 ]
+    then
+      sleep 10
+    else
+      echo EXPRESSVPN AWAITING...
+      #break
+    fi
+
+    if [ $timeout -gt 3 ] 
+    then
+      echo EXPRESSVPN TIMEOUT WAITING $timeout
+      #break
+      return 9
+    fi
+
+  done
 }
 
 vpnconnect(){
   cnt=$rnd
+  echo EXPRESSVPN CONNECT START FROM RANDOM: $cnt 
+
+  expressvpn status >$var1 2>&1
+  cat $var1 | grep 'Connected to ' > $var2
+  if [ -s $var2 ]
+  then
+    echo EXPRESSVPN CONNECTED AND EXITING... 
+    rm $PIDFILE
+    exit 1
+  else
+    echo CONNECT EXPRESSVPN USE LAST SUCCEED NODE
+    #expressvpn connect >$var5 2>&1
+    #cat $var5
+  fi
+  #vpnstatus
+
+  echo CONNECT EXPRESSVPN ...
   while cnt=`expr $cnt % $nodecnt + 1`
   do
     echo CONNECT EXPRESSVPN FROM LINE $cnt [PID:$$]
@@ -134,7 +175,7 @@ vpnconnect(){
     var10=`cat $var0`
     echo CONNECT EXPRESSVPN TO $var10
     cat /dev/null > $var1
-    expressvpn connect $var10 2>&1 > $var1
+    expressvpn connect $var10 >$var1 2>&1
     cat $var1 | grep 'Connected to ' > $var2
     if [ -s $var2 ]
     then
@@ -144,6 +185,7 @@ vpnconnect(){
     vpnstatus
     echo RECONNECT EXPRESSVPN FROM LINE $cnt
   done
+  echo CHECK COUNTER $cnt
 }
 
 vpnverify(){
@@ -152,7 +194,7 @@ vpnverify(){
   do
     echo ----TEST PING $line
     cat /dev/null > $var6
-    ping -c 10 $line 2>&1 > $var6
+    ping -c 10 $line >$var6 2>&1
     if [ -s $var6 ]
     then
       cat $var6
@@ -163,7 +205,7 @@ vpnverify(){
     echo ---- >> $var4
     echo ----PING END
   done
-  var10=`cat $var4 | grep ", 0 received" | wc -l | awk '{print $1}'`
+  var10=`cat $var4 | grep ", 0 received\|unknown host" | wc -l | awk '{print $1}'`
   echo ----PING FAILED: $var10
   if [ $var10 -gt 2 ]
   then
