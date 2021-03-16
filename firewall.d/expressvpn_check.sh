@@ -44,27 +44,30 @@ var7=${tmpdir}/var7.$NAME
 var8=${tmpdir}/var8.$NAME
 var9=${tmpdir}/var9.$NAME
 
-expressvpn_status=`expressvpn status`
+echo ===EXPRESSVPN CHECK===
+expressvpn_status=`expressvpn status 2>&1`
 expressvpn_check=`echo $expressvpn_status | grep "Unable to Connect"`
 if [ "$expressvpn_check" != "" ]
 then
 	  echo Unable to Connect!
-	          expressvpn disconnect
+	  expressvpn disconnect
+	  echo $(date) $expressvpn_check >> /root/disconnect.log
 fi
 
 expressvpn_check=`echo $expressvpn_status | grep "Unable to connect"`
 if [ "$expressvpn_check" != "" ]
 then
 	  echo Unable to connect!
-	          expressvpn disconnect
+	  expressvpn disconnect
+	  echo $(date) $expressvpn_check >> /root/disconnect.log
 fi
 
 expressvpn_check=`echo $expressvpn_status | grep "Connected to"`
 if [ "$expressvpn_check" != ""  ]
 then
-	        echo ok! $expressvpn_status
+          echo ok! $expressvpn_status
 fi
-
+echo ===EXPRESSVPN CHECKED===
 main_start(){
 	  echo $NAME [$FILENAME] START TEMPLY NOT AVALIBLE
   }
