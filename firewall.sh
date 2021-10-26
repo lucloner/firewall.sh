@@ -16,6 +16,7 @@ NAME=DASHFW
 FILENAME=`basename $0 .sh`.sh
 MAINPID=$$
 PIDFILE=/var/run/$NAME.pid
+OLDPIDFILE=/var/run/_$NAME.pid
 USER="root"
 GROUP="root"
 
@@ -79,6 +80,21 @@ outofdate=${tmpdir}/outofdate.lst
 #localip='127.0.0.1'
 #netid='127.0.0.0/24'
 
+var10=`cat $PIDFILE`
+if [ -s $PIDFILE ]
+then
+  if [ -d /proc/$var10 ]
+  then
+    echo $NAME [$FILENAME] IS RUNNING
+    kill $var10
+    kill -9 $OLDPIDFILE
+    echo $var10 > $OLDPIDFILE
+    exit 2
+  fi
+fi
+echo $NAME [$FILENAME] PID CHECKED OK
+echo $$ > $PIDFILE
+
 #输出变量
 main_getvar(){
   if [ ! -z "$1" ]
@@ -120,7 +136,7 @@ updatetables(){
 #更新网络信息
 updatelocalnetwork(){
   #获得网关
-  route -n | grep ^0.0.0.0 | awk '{print $2}' 2>&1 > $gatewayip
+  route -n | grep ^0.0.0.0 | grep eth0 | awk '{print $2}' 2>&1 > $gatewayip
   #获得本地网络
   ip addr | grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}/[0-9]{1,2}" | grep -Ev "^127\." > $localnet
 }
@@ -192,7 +208,7 @@ nsip() {
     then
       echo -NOT IN BLACKLIST THEN CONTINUE UPDATE
       delfromlist $new_fname $dnslist
-      cp $var0 $new_fname
+      [ ! $(cat $var0 | grep '0.0.0.0') ] && cp $var0 $new_fname
       addtolist $new_fname $dnslist
     fi
   fi

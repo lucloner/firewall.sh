@@ -45,52 +45,14 @@ var7=${tmpdir}/var7.$NAME
 var8=${tmpdir}/var8.$NAME
 var9=${tmpdir}/var9.$NAME
 
-rei_connect(){
-	expressvpn disconnect
-	if [ -s $savelast ]
-	then
-		express connect
-		rm $savelast
-	else
-		expressvpn connect smart
-	fi
-	rm /var/run/DASHFW.plugin.expressvpn.pid
-	sh %0
-}
-
-echo ===EXPRESSVPN CHECK===
-expressvpn_status=`expressvpn status 2>&1`
-expressvpn_check=`echo $expressvpn_status | grep "Unable to Connect"`
-if [ "$expressvpn_check" != "" ]
+if [ $(df --output=source,avail -l | grep fwfs | awk '{print $2}') -lt 10  ]
 then
-	  echo 1 Unable to connect!
-	  echo $(date) $expressvpn_check >> /root/disconnect.log
-	  rei_connect
+	rm -Rf $tmpdir/*
+	echo ==SPACE FLUSHED==
+else
+	echo ==SPACE OK!==
 fi
 
-expressvpn_check=`echo $expressvpn_status | grep "Unable to connect"`
-if [ "$expressvpn_check" != "" ]
-then
-	  echo 2 Unable to connect!
-	  echo $(date) $expressvpn_check >> /root/disconnect.log
-	  rei_connect
-fi
-expressvpn_check=`echo $expressvpn_status | grep "Not connected"`
-if [ "$expressvpn_check" != ""  ]
-then
-	  echo 3 Unable to connect!
-          echo = $(date) $expressvpn_check >> /root/disconnect.log
-	  rei_connect
-fi
-
-expressvpn_check=`echo $expressvpn_status | grep "Connected to"`
-if [ "$expressvpn_check" != ""  ]
-then
-	 echo ok! $expressvpn_status > $savelast
-	 cat $savelast
-fi
-
-echo ===EXPRESSVPN CHECKED===
 main_start(){
 	  echo $NAME [$FILENAME] START TEMPLY NOT AVALIBLE
   }

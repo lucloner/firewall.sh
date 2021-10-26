@@ -56,12 +56,14 @@ dolist(){
   cat $var0 | grep $param_j | grep $param_p | grep $1 > $var1
   if [ ! -s $var1 ]
   then
-    var10=''
+    var9=''
     if [ ! -z $param_opt ]
     then
-      var10='--'"$param_opt $2"
+      var9='--'"$param_opt $2"
     fi
-    iptables -t filter -$1 $param_c -p $param_p $var10 -j $param_j
+    #echo ===TRACE VAR10===$var10
+    #echo ===TRACE 1===$1
+    iptables -t filter -$1 $param_c -p $param_p $var9 -j $param_j
   fi
 }
 
@@ -103,6 +105,7 @@ main(){
   cat $portlist | while read line
   do
     #echo --APPLY LINE $line
+    #echo $var10
     dolist $var10 $line
   done
 }
